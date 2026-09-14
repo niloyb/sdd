@@ -1,0 +1,19 @@
+# Virtual environments
+.venv_sdd/
+.venv/
+venv/
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.egg-info/
+
+# Experiment artifacts
+runs/
+data/
+figures_out/
+logs/
+
+# OS
+.DS_Store
