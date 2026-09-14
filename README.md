@@ -93,31 +93,32 @@ recomputed from the context actually trained on, or the residual stream is mis-s
 
 ## A small run on CPU
 
-A CPU-only sanity run: the dependency-free `patched` placeholder architecture, 
-size `small` (3.32M params), $T = 256$, 10k steps, four seeds. About
-25 min for all eight runs at eight at a time on an 8-core machine.
+A CPU-only sanity run: the real `toto2` architecture at size `4m` (4.14M params,
+needs `toto-ts` -- see Install), $T = 512$, 10k steps, four seeds. About
+35 min per run; each process uses ~750MB at `--batch-size 8`, so run as many in
+parallel as your machine's memory allows (all eight at once needs ~6GB free).
 
 ```bash
-# 164k series = 10k steps x batch 16, so nothing is revisited
-python sdd/scripts/make_cache.py --out data/T256 --gen gp:1.0 --n 164000 --seq-len 256
+# 164k series = 10k steps x batch 8 x 2 (nothing revisited, with headroom)
+python sdd/scripts/make_cache.py --out data/T512 --gen gp:1.0 --n 164000 --seq-len 512
 
 for seed in 0 1 2 3; do
   for arm in status_quo sdd; do
-    python sdd/scripts/train.py --cache data/T256 \
+    python sdd/scripts/train.py --cache data/T512 \
         --out runs/small/level/$arm/seed$seed \
-        --arch patched --size small --arm $arm --masking cpm \
-        --batch-size 16 --max-steps 10000 --lr 6e-4 --seed $seed --device cpu
+        --arch toto2 --size 4m --arm $arm --masking cpm \
+        --batch-size 8 --max-steps 10000 --lr 6e-4 --seed $seed --device cpu
   done
 done
 
 python sdd/scripts/make_figures.py --only run --run-root runs/small --out figures \
-    --run-title 'Patched Transformer 3.32M small architecture'
+    --run-title 'Toto-2 4M architecture'
 ```
 
-![small CPU run](assets/fig_cpu_run_patched_small_crps.png)
+![small CPU run](assets/fig_cpu_run_toto2_4m_T512_crps.png)
 
-SDD ends below Status Quo on all four seeds (mean $-13.46\%$, range $-19.55$ to
-$-5.37$) and reaches Status Quo's best loss on $1.23\times$ less compute.
+SDD ends below Status Quo on all four seeds (mean $-1.16\%$, range $-1.33$ to
+$-0.99$) and reaches Status Quo's best loss on $1.43\times$ less compute. 
 
 
 ## Reproducing the paper

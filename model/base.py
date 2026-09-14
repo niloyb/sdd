@@ -37,8 +37,9 @@ class TSFM(nn.Module, ABC):
 
 
 class PatchedTransformer(TSFM):
-    """PatchTST-style encoder: a placeholder so the pipeline runs with no optional
-    dependencies. The paper's figures use Toto-2 (`toto2.py`), not this."""
+    """PatchTST-style encoder with causal attention over patches, 
+    a causal running mean/std normalizer, and quantile head.
+    """
 
     def __init__(
         self,
@@ -69,15 +70,28 @@ class PatchedTransformer(TSFM):
         P = self.patch_length
         n = T // P
         m = torch.zeros_like(y) if mask is None else mask.float()
-        x = torch.stack([y * (1 - m), m], dim=-1).reshape(B, n, 2 * P)
-        o = self.head(self.body(self.embed(x) + self.pos[:, :n]))
+        observed = 1 - m
+
+        # Causal running mean/std over observed positions only: a masked (target)
+        # position freezes at the last observed statistic rather than looking ahead.
+        cnt = observed.cumsum(1).clamp_min(1)
+        s1 = (y * observed).cumsum(1)
+        s2 = (y * observed).square().cumsum(1)
+        loc = s1 / cnt
+        scale = (s2 / cnt - loc.square()).clamp_min(1e-4).sqrt()
+        yn = (y - loc) / scale
+
+        x = torch.stack([yn * observed, m], dim=-1).reshape(B, n, 2 * P)
+        causal_mask = nn.Transformer.generate_square_subsequent_mask(n, device=y.device)
+        o = self.head(self.body(self.embed(x) + self.pos[:, :n], mask=causal_mask))
         if self.n_quantiles:
             o = o.reshape(B, n * P, self.n_quantiles)
         else:
             o = o.reshape(B, n * P)
+        o = o.sinh()  # knots are in asinh space; undo to linear, normalized space
         # Shift by one patch: output at patch k predicts patch k+1.
         pred = torch.cat([torch.zeros_like(o[:, :P]), o[:, :-P]], dim=1)
-        return pred, 0.0, 1.0
+        return pred, loc, scale
 
 
 PATCHED_SIZES: dict[str, dict] = {

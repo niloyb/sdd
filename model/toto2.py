@@ -54,7 +54,7 @@ TOTO2_SIZES: dict[str, dict[str, Any]] = {
 
 def _require_toto2():
     try:
-        from toto2 import Toto2Model, Toto2ModelConfig
+        from toto2.toto2 import Toto2Model, Toto2ModelConfig
     except ImportError as e:  # pragma: no cover
         raise ImportError(
             "Toto-2 needs the `toto-ts` package: pip install "
