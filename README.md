@@ -1,7 +1,7 @@
 # Synthetic Data Distillation (SDD)
 
-Reference implementation for *Distillation of Synthetic Data for Time Series
-Foundation Models*, and the code that produces Figures 1–3 and Table 4.
+Reference implementation for [*Distillation of Synthetic Data for Time Series
+Foundation Models*](https://arxiv.org/abs/2609.09586), and the code that produces Figures 1–3 and Table 4.
 
 Status Quo pre-training scores a forecast against one realized future. SDD scores
 it against the **conditional law** of the future, which is closed-form for the
